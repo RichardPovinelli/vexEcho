@@ -1,3 +1,4 @@
 void main(void);
-unsigned char needHeartBeat(unsigned long lastHeartBeat);
+unsigned char usartDataReady(void);
+int usartGetChar(char * c);
 

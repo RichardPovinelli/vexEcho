@@ -1,68 +1,47 @@
 #include <OpenVex.h>
 #include <limits.h>
 #include <stdio.h>
-#include "vexHeartBeat.h"
-#define MAX_COUNT 20
-#define MAX_HEARTBEAT_DELAY 39063 //ticks/s, 10000/256 * 1000
-#define HEART_BEAT 'X' //0x00
+#include "vexEcho.h"
 
 void main(void) {
   unsigned char c = 0;
-  unsigned long lastHeartBeat = 0;
-  unsigned long ticksPerMs = 10000 / 16;
 
-  vex_init();
-  usart_init();
+  controller_init();
 
-  DPRINTF("\nStarting Autonomous mode\n");
-  master_begin_autonomous_mode();
+  //controller_in_autonomous_mode();// see Lib/master.c
+  controller_begin_autonomous_mode();
 
-  /*
-    DPRINTF("Set up timer0\n");
-   */
-  timer0_set_prescale(TIMER0_PRESCALE_256);
-  timer0_mode16();
-  //timer0_interrupts_on();
-  timer0_start();
+  printf("\n\"Hello, world!\"\n\t - Rex the Vex\n\n");
 
   while (TRUE) {
-    //DPRINTF("Putting a char to usart\n");
-    /*
-        delay_sec(1);
-     */
+     if (usartGetChar(&c)) { // If there is a character to get...
+        // we're in!
+        printf("\nif (usartGetChar(&c))");
+        // print the character that was received
+        usart_putc(c);
+     }
 
-    //usart_putc('_'); //debug
-
-    /*
-            if (usart_ready()) {
-              usart_gets(&c, 1);
-              lastHeartBeat = TIMER0_ELAPSED_MS();
-              //processInput(c);
-            } //if
-     */
-    printf("T0CON = %X\n", T0CON);
-    if (needHeartBeat(lastHeartBeat)) {
-      usart_putc(HEART_BEAT);
-      //fflush();
-      lastHeartBeat = timer0_read32();
-    }//if
-    delay_msec(100);
+     controller_submit_data(NO_WAIT);
   } //while
-  /*
-      master_end_autonomous_mode();
-      DPRINTF("Ending Autonomous mode.\n");
-   */
 } //main
 
-unsigned char needHeartBeat(unsigned long lastHeartBeat) {
-  unsigned long delay = 0;
-  unsigned long currentTime = timer0_read32();
-  if (currentTime < lastHeartBeat) { //timer wrapped around
-    delay = UINT_MAX - lastHeartBeat + currentTime;
-  }
-  else {
-    delay = currentTime - lastHeartBeat;
-  } //else
+unsigned char usartDataReady(void) {
+    // will return 0 or 1
+    return PIR1bits.RCIF;
+}
 
-  return MAX_HEARTBEAT_DELAY < delay;
-} //needHeartBeat
+int usartGetChar(char * c) {
+    // if data is ready, newdata will be 1
+    unsigned char newdata = usartDataReady();
+    // Debugging:
+    //printf("\nIN USARTGETCHAR!");
+    if (newdata) {
+        // put the value of the register into c
+        *c = RCREG1;
+        printf("\nif: %c",(char)RCREG1);
+        //printf("\nor: %c",(char)rxbyte);
+        return 1;
+    }
+    // fail:
+    return 0;
+}
